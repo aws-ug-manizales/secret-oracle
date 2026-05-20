@@ -1,0 +1,12 @@
+{
+    "name": "secret-oracle",
+    "version": "1.0.0",
+    "private": true,
+    "description": "",
+    "workspaces": [
+        "packages/*"
+    ],
+    "keywords": [],
+    "author": "AWS User Group Manizales",
+    "license": "ISC"
+}

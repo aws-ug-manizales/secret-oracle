@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secret Oracle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Logic layer (must load before the inline game script) -->
+  <script src="logic/config.js"></script>
+  <script src="logic/api.js"></script>
+  <script src="logic/game.js"></script>
+  <style>
+    /* ─── CSS Variables ─────────────────────────────────── */
+    :root {
+      --bg:          #07071a;
+      --bg-surface:  #0d0d2b;
+      --bg-card:     #0f0f2e;
+      --neon-cyan:   #00f5ff;
+      --neon-purple: #bf5fff;
+      --neon-pink:   #ff2d78;
+      --neon-green:  #00ff9d;
+      --neon-gold:   #ffd700;
+      --text:        #e2e8f0;
+      --muted:       #8892b0;
+      --border:      rgba(0, 245, 255, 0.18);
+    }
+
+    /* ─── Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 245, 255, 0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
+    /* ─── Star field ────────────────────────────────────── */
+    #stars-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Scanlines overlay ─────────────────────────────── */
+    .scanlines {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* ─── Vignette ──────────────────────────────────────── */
+    .vignette {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center,
+        transparent 60%,
+        rgba(7, 7, 26, 0.85) 100%
+      );
+    }
+
+    /* ─── Layout wrapper ────────────────────────────────── */
+    #app {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column;
+      height: 100vh; max-width: 860px;
+      margin: 0 auto;
+      padding: 0 12px;
+    }
+
+    /* ─── Header ─────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo-group { display: flex; align-items: center; gap: 12px; }
+
+    .oracle-eye {
+      position: relative; width: 44px; height: 44px;
+      flex-shrink: 0;
+    }
+    .oracle-eye svg { width: 100%; height: 100%; }
+
+    .logo-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1rem, 2.5vw, 1.35rem);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan), 0 0 24px rgba(0,245,255,0.4);
+    }
+    .logo-sub {
+      font-size: 0.625rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      display: block;
+      text-transform: uppercase;
+    }
+
+    /* Glitch animation on logo */
+    @keyframes glitch {
+      0%,94%,100% { transform: none; clip-path: none; text-shadow: 0 0 8px var(--neon-cyan), 0 0 24px rgba(0,245,255,0.4); }
+      95% { transform: skewX(-4deg) translateX(3px); text-shadow: -3px 0 var(--neon-pink), 3px 0 var(--neon-cyan); clip-path: polygon(0 20%, 100% 20%, 100% 45%, 0 45%); }
+      97% { transform: skewX(2deg) translateX(-2px); text-shadow: 3px 0 var(--neon-purple), -3px 0 var(--neon-green); clip-path: polygon(0 55%, 100% 55%, 100% 80%, 0 80%); }
+    }
+    .logo-text { animation: glitch 7s infinite; }
+
+    /* Header stats */
+    .stats-bar {
+      display: flex; align-items: center; gap: 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+    }
+    .stat-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; color: var(--muted);
+    }
+    .stat-value {
+      font-size: 1rem; font-weight: 600;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan);
+    }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; }
+
+    .btn-new-game {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; letter-spacing: 0.15em;
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid var(--neon-pink);
+      color: var(--neon-pink);
+      border-radius: 3px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 200ms, box-shadow 200ms, color 200ms;
+    }
+    .btn-new-game:hover {
+      background: rgba(255, 45, 120, 0.15);
+      box-shadow: 0 0 16px rgba(255,45,120,0.5), inset 0 0 8px rgba(255,45,120,0.1);
+      color: #fff;
+    }
+
+    /* ─── Chat area ──────────────────────────────────────── */
+    #chat-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 18px 0 8px;
+      display: flex; flex-direction: column; gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    /* ─── Message bubbles ────────────────────────────────── */
+    .msg { display: flex; gap: 10px; max-width: 100%; animation: msgIn 0.35s cubic-bezier(0.23,1,0.32,1); }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Oracle (left) */
+    .msg-oracle { align-self: flex-start; align-items: flex-start; }
+
+    .oracle-avatar {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #1e0a3c, #07071a);
+      border: 1.5px solid var(--neon-purple);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 12px rgba(191,95,255,0.6), 0 0 30px rgba(191,95,255,0.2);
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+    @keyframes avatarPulse {
+      0%,100% { box-shadow: 0 0 12px rgba(191,95,255,0.6), 0 0 30px rgba(191,95,255,0.2); }
+      50%      { box-shadow: 0 0 20px rgba(191,95,255,0.9), 0 0 50px rgba(191,95,255,0.4); }
+    }
+
+    .bubble-oracle {
+      background: linear-gradient(135deg, rgba(15,12,50,0.95), rgba(20,8,60,0.85));
+      border: 1px solid rgba(191,95,255,0.35);
+      border-radius: 2px 14px 14px 14px;
+      padding: 10px 14px;
+      max-width: 520px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 20px rgba(191,95,255,0.12), inset 0 1px 0 rgba(191,95,255,0.1);
+    }
+    .bubble-oracle .sender {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem; letter-spacing: 0.2em;
+      color: var(--neon-purple);
+      text-shadow: 0 0 6px var(--neon-purple);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .bubble-oracle .text {
+      font-size: 0.9rem; line-height: 1.65;
+      color: var(--text);
+    }
+
+    /* Hint tag */
+    .tag-hint {
+      display: inline-block; margin-bottom: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem; letter-spacing: 0.2em;
+      padding: 2px 8px;
+      background: rgba(0,255,157,0.08);
+      border: 1px solid rgba(0,255,157,0.35);
+      border-radius: 2px;
+      color: var(--neon-green);
+      text-transform: uppercase;
+    }
+    .tag-correct {
+      display: inline-block; margin-bottom: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem; letter-spacing: 0.2em;
+      padding: 2px 8px;
+      background: rgba(0,255,157,0.12);
+      border: 1px solid var(--neon-green);
+      border-radius: 2px;
+      color: var(--neon-green);
+      text-shadow: 0 0 6px var(--neon-green);
+      text-transform: uppercase;
+    }
+    .tag-wrong {
+      display: inline-block; margin-bottom: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem; letter-spacing: 0.2em;
+      padding: 2px 8px;
+      background: rgba(255,45,120,0.08);
+      border: 1px solid rgba(255,45,120,0.45);
+      border-radius: 2px;
+      color: var(--neon-pink);
+      text-transform: uppercase;
+    }
+
+    /* Player (right) */
+    .msg-player { align-self: flex-end; flex-direction: row-reverse; align-items: flex-end; }
+
+    .player-avatar {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #001a2c, #07071a);
+      border: 1.5px solid var(--neon-cyan);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 12px rgba(0,245,255,0.4);
+    }
+
+    .bubble-player {
+      background: linear-gradient(135deg, rgba(0,18,38,0.95), rgba(0,10,30,0.85));
+      border: 1px solid rgba(0,245,255,0.3);
+      border-radius: 14px 2px 14px 14px;
+      padding: 10px 14px;
+      max-width: 440px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 20px rgba(0,245,255,0.08), inset 0 1px 0 rgba(0,245,255,0.08);
+    }
+    .bubble-player .text {
+      font-size: 0.9rem; line-height: 1.6;
+      color: var(--neon-cyan);
+    }
+
+    /* ─── Image reveal card ─────────────────────────────── */
+    .reveal-card {
+      margin-top: 10px;
+      border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--neon-purple);
+      box-shadow: 0 0 30px rgba(191,95,255,0.28), 0 0 60px rgba(191,95,255,0.1);
+      position: relative;
+      max-width: 320px;
+    }
+    .reveal-card img {
+      width: 100%; display: block;
+      animation: revealImg 0.8s cubic-bezier(0.23,1,0.32,1);
+    }
+    @keyframes revealImg {
+      from { filter: blur(20px) brightness(0.3); transform: scale(0.95); }
+      to   { filter: blur(0) brightness(1); transform: scale(1); }
+    }
+    .reveal-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(7,7,26,0.95));
+      padding: 20px 12px 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem; letter-spacing: 0.15em;
+      color: var(--neon-gold);
+      text-shadow: 0 0 10px var(--neon-gold);
+      text-align: center;
+    }
+
+    /* ─── Typing indicator ───────────────────────────────── */
+    .typing-indicator { display: flex; gap: 5px; align-items: center; padding: 4px 0 2px; }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--neon-purple);
+      animation: typingBounce 1.4s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--neon-purple);
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+      30%          { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ─── System message ─────────────────────────────────── */
+    .msg-system {
+      align-self: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border: 1px solid rgba(136,146,176,0.2);
+      border-radius: 50px;
+      background: rgba(136,146,176,0.04);
+    }
+
+    /* ─── Input zone ─────────────────────────────────────── */
+    #input-zone {
+      flex-shrink: 0;
+      padding: 12px 0 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .action-row {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .btn-action {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem; letter-spacing: 0.12em;
+      padding: 7px 14px;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 180ms, box-shadow 180ms, color 180ms;
+      white-space: nowrap;
+    }
+    .btn-hint {
+      border: 1px solid rgba(0,255,157,0.5);
+      color: var(--neon-green);
+    }
+    .btn-hint:hover {
+      background: rgba(0,255,157,0.1);
+      box-shadow: 0 0 14px rgba(0,255,157,0.35);
+      color: #fff;
+    }
+    .btn-giveup {
+      border: 1px solid rgba(255,215,0,0.4);
+      color: var(--neon-gold);
+    }
+    .btn-giveup:hover {
+      background: rgba(255,215,0,0.1);
+      box-shadow: 0 0 14px rgba(255,215,0,0.3);
+      color: #fff;
+    }
+    .btn-action:disabled {
+      opacity: 0.3; cursor: not-allowed;
+      box-shadow: none !important;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+
+    #guess-input {
+      flex: 1;
+      background: rgba(0,8,20,0.8);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 11px 16px;
+      font-family: 'Exo 2', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 200ms, box-shadow 200ms;
+      backdrop-filter: blur(8px);
+    }
+    #guess-input::placeholder { color: rgba(136,146,176,0.5); }
+    #guess-input:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 0 2px rgba(0,245,255,0.12), 0 0 20px rgba(0,245,255,0.12);
+    }
+
+    .btn-send {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; letter-spacing: 0.12em;
+      padding: 11px 22px;
+      background: linear-gradient(135deg, rgba(0,245,255,0.15), rgba(0,245,255,0.05));
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 200ms, box-shadow 200ms, color 200ms;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .btn-send:hover:not(:disabled) {
+      background: rgba(0,245,255,0.2);
+      box-shadow: 0 0 20px rgba(0,245,255,0.5), 0 0 40px rgba(0,245,255,0.15);
+      color: #fff;
+    }
+    .btn-send:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ─── Start screen overlay ───────────────────────────── */
+    #start-screen {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(15,8,50,0.97) 0%, rgba(7,7,26,0.99) 100%);
+      gap: 28px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .start-orb {
+      position: relative; width: 110px; height: 110px;
+    }
+    .start-orb svg { width: 100%; height: 100%; }
+
+    @keyframes orbGlow {
+      0%,100% { filter: drop-shadow(0 0 12px var(--neon-purple)) drop-shadow(0 0 40px rgba(191,95,255,0.4)); }
+      50%      { filter: drop-shadow(0 0 24px var(--neon-cyan)) drop-shadow(0 0 60px rgba(0,245,255,0.5)); }
+    }
+    .start-orb { animation: orbGlow 3s ease-in-out infinite; }
+
+    .start-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.8rem);
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 10px rgba(0,245,255,0.35));
+      line-height: 1.1;
+    }
+
+    .start-subtitle {
+      font-size: 0.9rem; color: var(--muted); max-width: 420px;
+      line-height: 1.7; letter-spacing: 0.02em;
+    }
+
+    .btn-start {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem; letter-spacing: 0.2em;
+      padding: 16px 44px;
+      background: linear-gradient(135deg, rgba(191,95,255,0.2), rgba(0,245,255,0.1));
+      border: 1.5px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 250ms ease;
+      position: relative; overflow: hidden;
+    }
+    .btn-start::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,245,255,0.18), rgba(191,95,255,0.15));
+      opacity: 0; transition: opacity 250ms;
+    }
+    .btn-start:hover::before { opacity: 1; }
+    .btn-start:hover {
+      box-shadow: 0 0 30px rgba(0,245,255,0.55), 0 0 60px rgba(191,95,255,0.25);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .runes {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 0.4em;
+      color: rgba(191,95,255,0.35);
+      animation: runeFlicker 4s ease-in-out infinite;
+    }
+    @keyframes runeFlicker {
+      0%,92%,100% { opacity: 1; }
+      94%  { opacity: 0.2; }
+      96%  { opacity: 1; }
+      98%  { opacity: 0.5; }
+    }
+
+    /* ─── Decorative corner runes ────────────────────────── */
+    .corner {
+      position: fixed; z-index: 3;
+      width: 48px; height: 48px;
+      pointer-events: none; opacity: 0.35;
+    }
+    .corner-tl { top: 8px; left: 8px; }
+    .corner-tr { top: 8px; right: 8px; transform: scaleX(-1); }
+    .corner-bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+    .corner-br { bottom: 8px; right: 8px; transform: scale(-1,-1); }
+
+    /* ─── Responsive ─────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .stats-bar { gap: 10px; }
+      .stat-value { font-size: 0.85rem; }
+      .action-row { flex-wrap: wrap; }
+      .btn-action { font-size: 0.62rem; padding: 6px 10px; }
+    }
+
+    /* ─── Reduced motion ─────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Ambient layers ── -->
+<canvas id="stars-canvas" aria-hidden="true"></canvas>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- ── Corner decorations ── -->
+<svg class="corner corner-tl" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <path d="M2 46 L2 2 L46 2" stroke="#00f5ff" stroke-width="1.5"/>
+  <path d="M2 20 L8 20" stroke="#00f5ff" stroke-width="1"/>
+  <path d="M20 2 L20 8" stroke="#00f5ff" stroke-width="1"/>
+  <circle cx="2" cy="2" r="2" fill="#00f5ff"/>
+</svg>
+<svg class="corner corner-tr" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <path d="M2 46 L2 2 L46 2" stroke="#00f5ff" stroke-width="1.5"/>
+  <path d="M2 20 L8 20" stroke="#00f5ff" stroke-width="1"/>
+  <path d="M20 2 L20 8" stroke="#00f5ff" stroke-width="1"/>
+  <circle cx="2" cy="2" r="2" fill="#00f5ff"/>
+</svg>
+<svg class="corner corner-bl" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <path d="M2 46 L2 2 L46 2" stroke="#00f5ff" stroke-width="1.5"/>
+  <path d="M2 20 L8 20" stroke="#00f5ff" stroke-width="1"/>
+  <path d="M20 2 L20 8" stroke="#00f5ff" stroke-width="1"/>
+  <circle cx="2" cy="2" r="2" fill="#00f5ff"/>
+</svg>
+<svg class="corner corner-br" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <path d="M2 46 L2 2 L46 2" stroke="#00f5ff" stroke-width="1.5"/>
+  <path d="M2 20 L8 20" stroke="#00f5ff" stroke-width="1"/>
+  <path d="M20 2 L20 8" stroke="#00f5ff" stroke-width="1"/>
+  <circle cx="2" cy="2" r="2" fill="#00f5ff"/>
+</svg>
+
+<!-- ══════════════════════════════════════════════════════════
+     START SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="start-screen" role="dialog" aria-modal="true" aria-label="Secret Oracle – Start Screen">
+
+  <div class="start-orb" aria-hidden="true">
+    <svg viewBox="0 0 110 110">
+      <defs>
+        <radialGradient id="orb-g" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#3b1070"/>
+          <stop offset="55%" stop-color="#0d0630"/>
+          <stop offset="100%" stop-color="#07071a"/>
+        </radialGradient>
+        <radialGradient id="iris-g" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#bf5fff"/>
+          <stop offset="60%" stop-color="#7c1ab0"/>
+          <stop offset="100%" stop-color="#3b0070"/>
+        </radialGradient>
+      </defs>
+      <!-- outer glow ring -->
+      <circle cx="55" cy="55" r="50" fill="none" stroke="url(#iris-g)" stroke-width="1" opacity="0.6"/>
+      <circle cx="55" cy="55" r="44" fill="none" stroke="#00f5ff" stroke-width="0.5" opacity="0.3" stroke-dasharray="6 3"/>
+      <!-- orb body -->
+      <circle cx="55" cy="55" r="40" fill="url(#orb-g)"/>
+      <!-- iris -->
+      <ellipse cx="55" cy="55" rx="18" ry="22" fill="url(#iris-g)"/>
+      <!-- pupil -->
+      <ellipse cx="55" cy="55" rx="7" ry="10" fill="#07071a"/>
+      <!-- highlight -->
+      <ellipse cx="49" cy="47" rx="4" ry="3" fill="rgba(255,255,255,0.25)" transform="rotate(-20,49,47)"/>
+      <!-- rune marks -->
+      <text x="14" y="28" fill="rgba(0,245,255,0.45)" font-family="serif" font-size="8">ᚦ</text>
+      <text x="86" y="28" fill="rgba(0,245,255,0.45)" font-family="serif" font-size="8">ᚱ</text>
+      <text x="14" y="86" fill="rgba(191,95,255,0.45)" font-family="serif" font-size="8">ᛟ</text>
+      <text x="86" y="86" fill="rgba(191,95,255,0.45)" font-family="serif" font-size="8">ᚾ</text>
+    </svg>
+  </div>
+
+  <div>
+    <h1 class="start-title">SECRET<br/>ORACLE</h1>
+  </div>
+
+  <p class="start-subtitle">
+    The Oracle beholds a hidden image. Read the cryptic hints and peer beyond the veil.
+    Unravel the secret before your guesses run dry — or surrender to the unknown.
+  </p>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+    <div class="runes" aria-hidden="true">ᚦᚱ ᛟ ᚾᛁᛗ ᛞᛖ ᚠᚢᚦ ᛏᚱ ᛁᛖ</div>
+    <button class="btn-start" onclick="startGame()" aria-label="Begin a new game">
+      ⬡ &nbsp;ENTER THE ORACLE&nbsp; ⬡
+    </button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none;">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-group">
+      <div class="oracle-eye" aria-hidden="true">
+        <svg viewBox="0 0 44 44">
+          <defs>
+            <radialGradient id="eye-bg" cx="40%" cy="35%">
+              <stop offset="0%" stop-color="#2a0c55"/>
+              <stop offset="100%" stop-color="#07071a"/>
+            </radialGradient>
+            <radialGradient id="eye-iris" cx="40%" cy="35%">
+              <stop offset="0%" stop-color="#bf5fff"/>
+              <stop offset="100%" stop-color="#5a0099"/>
+            </radialGradient>
+          </defs>
+          <circle cx="22" cy="22" r="21" fill="url(#eye-bg)" stroke="rgba(191,95,255,0.5)" stroke-width="1"/>
+          <ellipse cx="22" cy="22" rx="9" ry="11" fill="url(#eye-iris)"/>
+          <ellipse cx="22" cy="22" rx="4" ry="5.5" fill="#07071a"/>
+          <ellipse cx="19" cy="18" rx="2" ry="1.5" fill="rgba(255,255,255,0.3)" transform="rotate(-15,19,18)"/>
+        </svg>
+      </div>
+      <div>
+        <span class="logo-text" aria-label="Secret Oracle">SECRET ORACLE</span>
+        <span class="logo-sub">Vision Beyond Sight</span>
+      </div>
+    </div>
+
+    <div class="stats-bar" aria-live="polite">
+      <div class="stat-item">
+        <span class="stat-value" id="stat-guesses">0</span>
+        <span class="stat-label">Guesses</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-hints">0</span>
+        <span class="stat-label">Hints</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-games">0</span>
+        <span class="stat-label">Games</span>
+      </div>
+    </div>
+
+    <button class="btn-new-game" onclick="newGame()" aria-label="Start a new game">
+      ↺ New Game
+    </button>
+  </header>
+
+  <!-- Chat -->
+  <div id="chat-scroll" role="log" aria-live="polite" aria-label="Oracle conversation"></div>
+
+  <!-- Input zone -->
+  <div id="input-zone">
+    <div class="action-row">
+      <button class="btn-action btn-hint" id="btn-hint" onclick="askHint()" aria-label="Ask the Oracle for a hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+        Ask for Hint
+      </button>
+      <button class="btn-action btn-giveup" id="btn-giveup" onclick="giveUp()" aria-label="Give up and reveal the secret image">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Surrender
+      </button>
+    </div>
+    <div class="input-row">
+      <input
+        type="text"
+        id="guess-input"
+        placeholder="Type your guess and press Enter…"
+        maxlength="80"
+        autocomplete="off"
+        aria-label="Your guess"
+        onkeydown="if(event.key==='Enter')sendGuess()"
+      />
+      <button class="btn-send" id="btn-send" onclick="sendGuess()" aria-label="Submit guess">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        SEND
+      </button>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STAR FIELD
+═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars(count = 160) {
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.4 + 0.3,
+      o: Math.random() * 0.6 + 0.2,
+      speed: Math.random() * 0.2 + 0.05,
+      phase: Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      const alpha = s.o * (0.7 + 0.3 * Math.sin(t * 0.001 * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,200,255,${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars();
+  window.addEventListener('resize', () => { resize(); initStars(); });
+  requestAnimationFrame(draw);
+})();
+
+/* ═══════════════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════════════ */
+const chat       = document.getElementById('chat-scroll');
+const guessInput = document.getElementById('guess-input');
+const btnSend    = document.getElementById('btn-send');
+const btnHint    = document.getElementById('btn-hint');
+const btnGiveup  = document.getElementById('btn-giveup');
+
+/* ═══════════════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════════════ */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setInputsDisabled(val) {
+  guessInput.disabled = val;
+  btnSend.disabled    = val;
+  btnHint.disabled    = val;
+  btnGiveup.disabled  = val;
+}
+
+function scrollToBottom() {
+  setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 50);
+}
+
+function updateStats() {
+  const s = OracleGame.getState();
+  document.getElementById('stat-guesses').textContent = s.guessCount;
+  document.getElementById('stat-hints').textContent   = s.hintsUsed;
+  document.getElementById('stat-games').textContent   = s.gamesPlayed;
+}
+
+/* ─── Oracle bubble ─── */
+const _AVATAR_SVG = `
+  <svg width="22" height="22" viewBox="0 0 44 44">
+    <circle cx="22" cy="22" r="21" fill="#0d0630" stroke="rgba(191,95,255,0.5)" stroke-width="1"/>
+    <ellipse cx="22" cy="22" rx="9" ry="11" fill="#8b3ec8"/>
+    <ellipse cx="22" cy="22" rx="4" ry="5.5" fill="#07071a"/>
+    <ellipse cx="19" cy="18" rx="2" ry="1.5" fill="rgba(255,255,255,0.3)" transform="rotate(-15,19,18)"/>
+  </svg>`;
+
+function oracleMessage(html, tag) {
+  const msg = document.createElement('div');
+  msg.className = 'msg msg-oracle';
+  msg.innerHTML = `
+    <div class="oracle-avatar" aria-hidden="true">${_AVATAR_SVG}</div>
+    <div class="bubble-oracle">
+      <div class="sender">THE ORACLE</div>
+      ${tag ? `<div class="${tag.cls}">${tag.label}</div>` : ''}
+      <div class="text">${html}</div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollToBottom();
+  return msg;
+}
+
+/* ─── Player bubble ─── */
+function playerMessage(text) {
+  const msg = document.createElement('div');
+  msg.className = 'msg msg-player';
+  msg.innerHTML = `
+    <div class="player-avatar" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00f5ff" stroke-width="1.5">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <div class="bubble-player">
+      <div class="text">${escHtml(text)}</div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollToBottom();
+}
+
+/* ─── System divider ─── */
+function systemMsg(text) {
+  const el = document.createElement('div');
+  el.className = 'msg msg-system';
+  el.textContent = text;
+  chat.appendChild(el);
+  scrollToBottom();
+}
+
+/* ─── Typing indicator ─── */
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'msg msg-oracle';
+  el.id = 'typing-msg';
+  el.innerHTML = `
+    <div class="oracle-avatar" aria-hidden="true" style="width:36px;height:36px">${_AVATAR_SVG}</div>
+    <div class="bubble-oracle">
+      <div class="sender">THE ORACLE</div>
+      <div class="typing-indicator" aria-label="Oracle is thinking">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+  chat.appendChild(el);
+  scrollToBottom();
+}
+function hideTyping() {
+  const el = document.getElementById('typing-msg');
+  if (el) el.remove();
+}
+
+/* ─── Image reveal card ─── */
+function revealImage({ image, answer }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg msg-oracle';
+  wrap.innerHTML = `
+    <div class="oracle-avatar" aria-hidden="true" style="align-self:flex-start">${_AVATAR_SVG}</div>
+    <div class="bubble-oracle">
+      <div class="sender">THE ORACLE</div>
+      <div class="text" style="margin-bottom:10px">The veil is lifted. Behold the secret image…</div>
+      <div class="reveal-card">
+        <img src="${escHtml(image)}" alt="${escHtml(answer)}" loading="lazy"/>
+        <div class="reveal-label">${escHtml(answer.toUpperCase())}</div>
+      </div>
+    </div>`;
+  chat.appendChild(wrap);
+  scrollToBottom();
+}
+
+/* ─── Error bubble ─── */
+function errorMessage(msg) {
+  oracleMessage(
+    `<span style="color:var(--neon-pink)">⚠ ${escHtml(msg)}</span>`,
+    { cls: 'tag-wrong', label: '⚠ ERROR' }
+  );
+}
+
+/* ─── Oracle speaks (with typing delay) ─── */
+function oracleSpeaks(html, tag, delay = 900) {
+  setInputsDisabled(true);
+  showTyping();
+  return new Promise(resolve => {
+    setTimeout(() => {
+      hideTyping();
+      oracleMessage(html, tag);
+      setInputsDisabled(false);
+      guessInput.focus();
+      resolve();
+    }, delay);
+  });
+}
+
+/* ─── Hint bubble helper ─── */
+function hintBubble(hint, hintNumber, hintsRemaining, label = '⬡ Hint') {
+  const parts = [];
+  if (hintNumber)      parts.push(`HINT ${hintNumber}`);
+  if (hintsRemaining != null) parts.push(`${hintsRemaining} REMAINING`);
+  const counter = parts.length
+    ? `<span style="color:var(--muted);font-size:0.8rem;font-family:'Share Tech Mono',monospace">${parts.join(' · ')}</span><br/>`
+    : '';
+  return oracleSpeaks(`${counter}${escHtml(hint)}`, { cls: 'tag-hint', label }, 900);
+}
+
+/* ═══════════════════════════════════════════════════════
+   GAME ACTIONS  (delegate entirely to OracleGame / OracleAPI)
+═══════════════════════════════════════════════════════ */
+
+/** Called by the Start-Screen button */
+async function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  await newGame();
+}
+
+/** Called by the header "New Game" button */
+async function newGame() {
+  chat.innerHTML = '';
+  guessInput.value = '';
+  setInputsDisabled(true);
+
+  systemMsg('— NEW GAME INITIATED —');
+
+  // Greeting while the API call is in-flight
+  showTyping();
+  let data;
+  try {
+    data = await OracleGame.startNewGame();
+  } catch (err) {
+    hideTyping();
+    errorMessage(err.message || 'Failed to start a new game. Please try again.');
+    setInputsDisabled(false);
+    return;
+  }
+  hideTyping();
+
+  updateStats();
+
+  await oracleSpeaks(
+    'Greetings, seeker. I have conjured a secret image — it is hidden within my sight alone. ' +
+    'Peer into my vision through the hints I offer, and unravel what lies concealed.',
+    null, 600
+  );
+
+  // data = { hint, message } — no hintNumber/totalHints on start
+  await hintBubble(data.hint, 1, null);
+}
+
+/** Called by the Send button / Enter key */
+async function sendGuess() {
+  const s = OracleGame.getState();
+  if (s.gameOver || s.loading || guessInput.disabled) return;
+
+  const raw = guessInput.value.trim();
+  if (!raw) return;
+
+  guessInput.value = '';
+  playerMessage(raw);
+  setInputsDisabled(true);
+  showTyping();
+
+  let data;
+  try {
+    data = await OracleGame.submitGuess(raw);
+  } catch (err) {
+    hideTyping();
+    errorMessage(err.message || 'Could not reach the Oracle. Please try again.');
+    setInputsDisabled(false);
+    guessInput.focus();
+    return;
+  }
+  hideTyping();
+  updateStats();
+
+  if (data.correct) {
+    // ── CORRECT ──────────────────────────────────────────
+    await oracleSpeaks(
+      `<strong style="color:var(--neon-green);font-size:1rem;">"${escHtml(raw)}"</strong> — ${escHtml(data.message)}`,
+      { cls: 'tag-correct', label: '✓ CORRECT' }, 800
+    );
+    setInputsDisabled(true);
+
+    // Reveal image — correct response carries imageUrl + labels
+    if (data.imageUrl) {
+      const answer = (data.labels && data.labels.length) ? data.labels.join(', ') : raw;
+      revealImage({ image: data.imageUrl, answer });
+    }
+    setTimeout(() => {
+      oracleMessage(
+        'The Oracle bows to your perception. Shall we begin another trial? Press <strong style="color:var(--neon-cyan)">New Game</strong> when you are ready.',
+        null
+      );
+    }, 600);
+
+  } else {
+    // ── WRONG ─────────────────────────────────────────────
+    setInputsDisabled(false);
+    // Wrong response uses `feedback` instead of `message`
+    await oracleSpeaks(
+      escHtml(data.feedback || data.message || 'That is not what I see, seeker. Try again.'),
+      { cls: 'tag-wrong', label: '✕ INCORRECT' }, 800
+    );
+
+
+    guessInput.focus();
+  }
+}
+
+/** Called by the "Ask for Hint" button */
+async function askHint() {
+  const s = OracleGame.getState();
+  if (s.gameOver || s.loading) return;
+
+  setInputsDisabled(true);
+  showTyping();
+
+  let data;
+  try {
+    data = await OracleGame.requestHint();
+  } catch (err) {
+    hideTyping();
+    errorMessage(err.message || 'The Oracle could not conjure a hint right now.');
+    setInputsDisabled(false);
+    return;
+  }
+  hideTyping();
+  updateStats();
+  setInputsDisabled(false);
+
+  // hintsRemaining === 0 means no more hints available
+  if (data.hintsRemaining === 0) {
+    oracleMessage(
+      'My visions are exhausted, seeker. No further hints remain. Trust your instincts.',
+      null
+    );
+    return;
+  }
+
+  await hintBubble(data.hint, data.hintNumber, data.hintsRemaining);
+}
+
+/** Called by the "Surrender" button */
+async function giveUp() {
+  const s = OracleGame.getState();
+  if (s.gameOver || s.loading) return;
+
+  setInputsDisabled(true);
+  systemMsg('— SEEKER HAS SURRENDERED —');
+  showTyping();
+
+  let data;
+  try {
+    data = await OracleGame.surrender();
+  } catch (err) {
+    hideTyping();
+    errorMessage(err.message || 'The Oracle stumbled. Please try again.');
+    setInputsDisabled(false);
+    return;
+  }
+  hideTyping();
+
+  await oracleSpeaks(
+    escHtml(data.message || 'So the seeker concedes… The Oracle does not judge. Behold what was hidden:'),
+    { cls: 'tag-wrong', label: '⚑ SURRENDER' }, 700
+  );
+
+  // give-up response: imageUrl + labels array
+  if (data.imageUrl) {
+    const answer = (data.labels && data.labels.length) ? data.labels.join(', ') : 'THE SECRET';
+    revealImage({ image: data.imageUrl, answer });
+  }
+
+  setTimeout(() => {
+    const answerText = (data.labels && data.labels.length)
+      ? data.labels.map(l => `<strong style="color:var(--neon-purple)">"${escHtml(l)}"</strong>`).join(', ')
+      : '';
+    oracleMessage(
+      `The secret was: ${answerText}. Press <strong style="color:var(--neon-cyan)">New Game</strong> to try again, seeker.`,
+      null
+    );
+  }, 500);
+}
+</script>
+</body>
+</html>
+

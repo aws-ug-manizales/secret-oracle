@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Secret Oracle - Image guessing game
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        GAME_TABLE:
+          Ref: GameTable
+        RANDOM_IMAGE_API_URL:
+          Ref: RandomImageApiUrl
+        BEDROCK_MODEL_ID: us.anthropic.claude-haiku-4-5-20251001-v1:0
+        GAME_TTL_HOURS: '2'
+Parameters:
+  RandomImageApiUrl:
+    Type: String
+    Description: URL of the internal Random Image API
+Resources:
+  GameTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: ${AWS::StackName}-games
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      AttributeDefinitions:
+      - AttributeName: sessionId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: sessionId
+        KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+  SecretOracleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-oracle
+      CodeUri: SecretOracleFunction
+      Handler: router.handler
+      Description: "Secret Oracle \u2014 single Lambda router"
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: GameTable
+      - RekognitionDetectOnlyPolicy: {}
+      - Statement:
+        - Effect: Allow
+          Action: bedrock:InvokeModel
+          Resource: '*'
+      Events:
+        NewGame:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SecretOracleApi
+            Path: /game
+            Method: POST
+        Guess:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SecretOracleApi
+            Path: /game/{sessionId}/guess
+            Method: POST
+        Hint:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SecretOracleApi
+            Path: /game/{sessionId}/hint
+            Method: GET
+        GiveUp:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SecretOracleApi
+            Path: /game/{sessionId}/give-up
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - router.ts
+        External:
+        - '@aws-sdk/*'
+        Minify: false
+        Sourcemap: false
+        Target: es2022
+      SamResourceId: SecretOracleFunction
+  SecretOracleApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:
+        Fn::Sub: ${AWS::StackName}-api
+      StageName: prod
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization'''
+        AllowOrigin: '''*'''
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL of the Secret Oracle API
+    Value:
+      Fn::Sub: https://${SecretOracleApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+  GameTableName:
+    Description: DynamoDB table name
+    Value:
+      Ref: GameTable
+  FunctionName:
+    Description: Lambda function name
+    Value:
+      Ref: SecretOracleFunction
