@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -557,7 +557,7 @@
 <!-- ══════════════════════════════════════════════════════════
      START SCREEN
 ══════════════════════════════════════════════════════════ -->
-<div id="start-screen" role="dialog" aria-modal="true" aria-label="Secret Oracle – Start Screen">
+<div id="start-screen" role="dialog" aria-modal="true" aria-label="Oráculo Secreto – Pantalla de Inicio">
 
   <div class="start-orb" aria-hidden="true">
     <svg viewBox="0 0 110 110">
@@ -597,14 +597,14 @@
   </div>
 
   <p class="start-subtitle">
-    The Oracle beholds a hidden image. Read the cryptic hints and peer beyond the veil.
-    Unravel the secret before your guesses run dry — or surrender to the unknown.
+    El Oráculo contempla una imagen oculta. Lee las pistas crípticas y mira más allá del velo.
+    Descifra el secreto antes de que se agoten tus intentos — o ríndete ante lo desconocido.
   </p>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
     <div class="runes" aria-hidden="true">ᚦᚱ ᛟ ᚾᛁᛗ ᛞᛖ ᚠᚢᚦ ᛏᚱ ᛁᛖ</div>
-    <button class="btn-start" onclick="startGame()" aria-label="Begin a new game">
-      ⬡ &nbsp;ENTER THE ORACLE&nbsp; ⬡
+    <button class="btn-start" onclick="startGame()" aria-label="Iniciar un nuevo juego">
+      ⬡ &nbsp;ENTRAR AL ORÁCULO&nbsp; ⬡
     </button>
   </div>
 
@@ -638,58 +638,59 @@
       </div>
       <div>
         <span class="logo-text" aria-label="Secret Oracle">SECRET ORACLE</span>
-        <span class="logo-sub">Vision Beyond Sight</span>
+        <span class="logo-sub">Visión Más Allá de lo Visible</span>
       </div>
     </div>
 
     <div class="stats-bar" aria-live="polite">
       <div class="stat-item">
         <span class="stat-value" id="stat-guesses">0</span>
-        <span class="stat-label">Guesses</span>
+        <span class="stat-label">Intentos</span>
       </div>
       <div class="stat-item">
         <span class="stat-value" id="stat-hints">0</span>
-        <span class="stat-label">Hints</span>
+        <span class="stat-label">Pistas</span>
       </div>
       <div class="stat-item">
         <span class="stat-value" id="stat-games">0</span>
-        <span class="stat-label">Games</span>
+        <span class="stat-label">Partidas</span>
       </div>
     </div>
 
-    <button class="btn-new-game" onclick="newGame()" aria-label="Start a new game">
-      ↺ New Game
+    <a href="promo.html" style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.14em;color:var(--muted);text-decoration:none;opacity:0.6;transition:opacity 180ms;white-space:nowrap;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" title="Sobre el GameRoom">ᛟ GameRoom</a>
+    <button class="btn-new-game" onclick="newGame()" aria-label="Iniciar un nuevo juego">
+      ↺ Nuevo Juego
     </button>
   </header>
 
   <!-- Chat -->
-  <div id="chat-scroll" role="log" aria-live="polite" aria-label="Oracle conversation"></div>
+  <div id="chat-scroll" role="log" aria-live="polite" aria-label="Conversación con el Oráculo"></div>
 
   <!-- Input zone -->
   <div id="input-zone">
     <div class="action-row">
-      <button class="btn-action btn-hint" id="btn-hint" onclick="askHint()" aria-label="Ask the Oracle for a hint">
+      <button class="btn-action btn-hint" id="btn-hint" onclick="askHint()" aria-label="Pedir una pista al Oráculo">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-        Ask for Hint
+        Pedir Pista
       </button>
-      <button class="btn-action btn-giveup" id="btn-giveup" onclick="giveUp()" aria-label="Give up and reveal the secret image">
+      <button class="btn-action btn-giveup" id="btn-giveup" onclick="giveUp()" aria-label="Rendirse y revelar la imagen secreta">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Surrender
+        Rendirse
       </button>
     </div>
     <div class="input-row">
       <input
         type="text"
         id="guess-input"
-        placeholder="Type your guess and press Enter…"
+        placeholder="Escribe tu intento y presiona Enter…"
         maxlength="80"
         autocomplete="off"
-        aria-label="Your guess"
+        aria-label="Tu intento"
         onkeydown="if(event.key==='Enter')sendGuess()"
       />
-      <button class="btn-send" id="btn-send" onclick="sendGuess()" aria-label="Submit guess">
+      <button class="btn-send" id="btn-send" onclick="sendGuess()" aria-label="Enviar intento">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        SEND
+        ENVIAR
       </button>
     </div>
   </div>
@@ -791,7 +792,7 @@ function oracleMessage(html, tag) {
   msg.innerHTML = `
     <div class="oracle-avatar" aria-hidden="true">${_AVATAR_SVG}</div>
     <div class="bubble-oracle">
-      <div class="sender">THE ORACLE</div>
+      <div class="sender">EL ORÁCULO</div>
       ${tag ? `<div class="${tag.cls}">${tag.label}</div>` : ''}
       <div class="text">${html}</div>
     </div>`;
@@ -835,8 +836,8 @@ function showTyping() {
   el.innerHTML = `
     <div class="oracle-avatar" aria-hidden="true" style="width:36px;height:36px">${_AVATAR_SVG}</div>
     <div class="bubble-oracle">
-      <div class="sender">THE ORACLE</div>
-      <div class="typing-indicator" aria-label="Oracle is thinking">
+      <div class="sender">EL ORÁCULO</div>
+      <div class="typing-indicator" aria-label="El Oráculo está pensando">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -857,8 +858,8 @@ function revealImage({ image, answer }) {
   wrap.innerHTML = `
     <div class="oracle-avatar" aria-hidden="true" style="align-self:flex-start">${_AVATAR_SVG}</div>
     <div class="bubble-oracle">
-      <div class="sender">THE ORACLE</div>
-      <div class="text" style="margin-bottom:10px">The veil is lifted. Behold the secret image…</div>
+      <div class="sender">EL ORÁCULO</div>
+      <div class="text" style="margin-bottom:10px">El velo se ha levantado. Contempla la imagen secreta…</div>
       <div class="reveal-card">
         <img src="${escHtml(image)}" alt="${escHtml(answer)}" loading="lazy"/>
         <div class="reveal-label">${escHtml(answer.toUpperCase())}</div>
@@ -892,10 +893,10 @@ function oracleSpeaks(html, tag, delay = 900) {
 }
 
 /* ─── Hint bubble helper ─── */
-function hintBubble(hint, hintNumber, hintsRemaining, label = '⬡ Hint') {
+function hintBubble(hint, hintNumber, hintsRemaining, label = '⬡ Pista') {
   const parts = [];
-  if (hintNumber)      parts.push(`HINT ${hintNumber}`);
-  if (hintsRemaining != null) parts.push(`${hintsRemaining} REMAINING`);
+  if (hintNumber)      parts.push(`PISTA ${hintNumber}`);
+  if (hintsRemaining != null) parts.push(`${hintsRemaining} RESTANTES`);
   const counter = parts.length
     ? `<span style="color:var(--muted);font-size:0.8rem;font-family:'Share Tech Mono',monospace">${parts.join(' · ')}</span><br/>`
     : '';
@@ -919,7 +920,7 @@ async function newGame() {
   guessInput.value = '';
   setInputsDisabled(true);
 
-  systemMsg('— NEW GAME INITIATED —');
+  systemMsg('— NUEVO JUEGO INICIADO —');
 
   // Greeting while the API call is in-flight
   showTyping();
@@ -928,7 +929,7 @@ async function newGame() {
     data = await OracleGame.startNewGame();
   } catch (err) {
     hideTyping();
-    errorMessage(err.message || 'Failed to start a new game. Please try again.');
+    errorMessage(err.message || 'No se pudo iniciar un nuevo juego. Inténtalo de nuevo.');
     setInputsDisabled(false);
     return;
   }
@@ -937,8 +938,8 @@ async function newGame() {
   updateStats();
 
   await oracleSpeaks(
-    'Greetings, seeker. I have conjured a secret image — it is hidden within my sight alone. ' +
-    'Peer into my vision through the hints I offer, and unravel what lies concealed.',
+    'Saludos, buscador. He conjurado una imagen secreta — está oculta solo ante mi vista. ' +
+    'Adéntrate en mi visión a través de las pistas que te ofrezco, y desvela lo que permanece escondido.',
     null, 600
   );
 
@@ -964,7 +965,7 @@ async function sendGuess() {
     data = await OracleGame.submitGuess(raw);
   } catch (err) {
     hideTyping();
-    errorMessage(err.message || 'Could not reach the Oracle. Please try again.');
+    errorMessage(err.message || 'No se pudo contactar al Oráculo. Inténtalo de nuevo.');
     setInputsDisabled(false);
     guessInput.focus();
     return;
@@ -976,7 +977,7 @@ async function sendGuess() {
     // ── CORRECT ──────────────────────────────────────────
     await oracleSpeaks(
       `<strong style="color:var(--neon-green);font-size:1rem;">"${escHtml(raw)}"</strong> — ${escHtml(data.message)}`,
-      { cls: 'tag-correct', label: '✓ CORRECT' }, 800
+      { cls: 'tag-correct', label: '✓ CORRECTO' }, 800
     );
     setInputsDisabled(true);
 
@@ -987,7 +988,7 @@ async function sendGuess() {
     }
     setTimeout(() => {
       oracleMessage(
-        'The Oracle bows to your perception. Shall we begin another trial? Press <strong style="color:var(--neon-cyan)">New Game</strong> when you are ready.',
+        'El Oráculo se inclina ante tu percepción. ¿Comenzamos otra prueba? Presiona <strong style="color:var(--neon-cyan)">Nuevo Juego</strong> cuando estés listo.',
         null
       );
     }, 600);
@@ -997,8 +998,8 @@ async function sendGuess() {
     setInputsDisabled(false);
     // Wrong response uses `feedback` instead of `message`
     await oracleSpeaks(
-      escHtml(data.feedback || data.message || 'That is not what I see, seeker. Try again.'),
-      { cls: 'tag-wrong', label: '✕ INCORRECT' }, 800
+      escHtml(data.feedback || data.message || 'Eso no es lo que veo, buscador. Inténtalo de nuevo.'),
+      { cls: 'tag-wrong', label: '✕ INCORRECTO' }, 800
     );
 
 
@@ -1019,7 +1020,7 @@ async function askHint() {
     data = await OracleGame.requestHint();
   } catch (err) {
     hideTyping();
-    errorMessage(err.message || 'The Oracle could not conjure a hint right now.');
+    errorMessage(err.message || 'El Oráculo no pudo conjurar una pista en este momento.');
     setInputsDisabled(false);
     return;
   }
@@ -1030,7 +1031,7 @@ async function askHint() {
   // hintsRemaining === 0 means no more hints available
   if (data.hintsRemaining === 0) {
     oracleMessage(
-      'My visions are exhausted, seeker. No further hints remain. Trust your instincts.',
+      'Mis visiones se han agotado, buscador. No quedan más pistas. Confía en tus instintos.',
       null
     );
     return;
@@ -1045,7 +1046,7 @@ async function giveUp() {
   if (s.gameOver || s.loading) return;
 
   setInputsDisabled(true);
-  systemMsg('— SEEKER HAS SURRENDERED —');
+  systemMsg('— EL BUSCADOR SE HA RENDIDO —');
   showTyping();
 
   let data;
@@ -1053,20 +1054,20 @@ async function giveUp() {
     data = await OracleGame.surrender();
   } catch (err) {
     hideTyping();
-    errorMessage(err.message || 'The Oracle stumbled. Please try again.');
+    errorMessage(err.message || 'El Oráculo ha tropezado. Inténtalo de nuevo.');
     setInputsDisabled(false);
     return;
   }
   hideTyping();
 
   await oracleSpeaks(
-    escHtml(data.message || 'So the seeker concedes… The Oracle does not judge. Behold what was hidden:'),
-    { cls: 'tag-wrong', label: '⚑ SURRENDER' }, 700
+    escHtml(data.message || 'Así que el buscador se rinde… El Oráculo no juzga. Contempla lo que estaba oculto:'),
+    { cls: 'tag-wrong', label: '⚑ RENDICIÓN' }, 700
   );
 
   // give-up response: imageUrl + labels array
   if (data.imageUrl) {
-    const answer = (data.labels && data.labels.length) ? data.labels.join(', ') : 'THE SECRET';
+    const answer = (data.labels && data.labels.length) ? data.labels.join(', ') : 'EL SECRETO';
     revealImage({ image: data.imageUrl, answer });
   }
 
@@ -1075,7 +1076,7 @@ async function giveUp() {
       ? data.labels.map(l => `<strong style="color:var(--neon-purple)">"${escHtml(l)}"</strong>`).join(', ')
       : '';
     oracleMessage(
-      `The secret was: ${answerText}. Press <strong style="color:var(--neon-cyan)">New Game</strong> to try again, seeker.`,
+      `El secreto era: ${answerText}. Presiona <strong style="color:var(--neon-cyan)">Nuevo Juego</strong> para intentarlo de nuevo, buscador.`,
       null
     );
   }, 500);
