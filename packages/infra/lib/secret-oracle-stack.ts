@@ -7,6 +7,9 @@ import {
     AllowedMethods,
     CachePolicy,
     Distribution,
+    Function as CfFunction,
+    FunctionCode,
+    FunctionEventType,
     HttpVersion,
     SecurityPolicyProtocol,
     ViewerProtocolPolicy
@@ -21,6 +24,7 @@ export interface SecretOracleStackProps extends StackProps {
     hostedZoneId: string;
     hostedZoneName: string;
     domainName: string;
+    gameroomDomainName?: string;
 }
 
 
@@ -41,6 +45,33 @@ export class SecretOracleStack extends cdk.Stack {
 
         const certificate = Certificate.fromCertificateArn(this, 'front-certificate', props.certificateArn);
 
+        // CloudFront Function to route by Host header
+        const routerFunction = new CfFunction(this, 'domain-router', {
+            functionName: `${props.name}-domain-router`,
+            code: FunctionCode.fromInline(`
+function handler(event) {
+    var request = event.request;
+    var host = request.headers.host ? request.headers.host.value : '';
+    var uri = request.uri;
+
+    // Only rewrite root path requests
+    if (uri === '/' || uri === '') {
+        if (host.startsWith('gameroom')) {
+            request.uri = '/promo.html';
+        } else {
+            request.uri = '/oracle-promo.html';
+        }
+    }
+
+    return request;
+}
+            `.trim()),
+        });
+
+        const domainNames = [props.domainName];
+        if (props.gameroomDomainName) {
+            domainNames.push(props.gameroomDomainName);
+        }
 
         const cloudfront = new Distribution(this, 'site-cloudfront', {
             defaultBehavior: {
@@ -48,12 +79,16 @@ export class SecretOracleStack extends cdk.Stack {
                 cachePolicy: CachePolicy.CACHING_OPTIMIZED,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
+                functionAssociations: [{
+                    function: routerFunction,
+                    eventType: FunctionEventType.VIEWER_REQUEST,
+                }],
             },
-            domainNames: [props.domainName],
+            domainNames,
             certificate,
             minimumProtocolVersion: SecurityPolicyProtocol.TLS_V1_2_2021,
             httpVersion: HttpVersion.HTTP2,
-            defaultRootObject: 'index.html',
+            defaultRootObject: '',
             errorResponses: [
                 {
                     httpStatus: 403,
@@ -79,23 +114,28 @@ export class SecretOracleStack extends cdk.Stack {
         });
 
         console.log('Adding domain name to CloudFront distribution');
-        this.addDomainName(props, cloudfront.distributionDomainName);
+        this.addDomainName(props, 'frontend-dns', props.domainName, cloudfront.distributionDomainName);
+
+        if (props.gameroomDomainName) {
+            console.log('Adding GameRoom domain name to CloudFront distribution');
+            this.addDomainName(props, 'gameroom-dns', props.gameroomDomainName, cloudfront.distributionDomainName);
+        }
 
         console.log('Secret Oracle stack created successfully');
 
     }
 
-    private addDomainName(props: SecretOracleStackProps, cloudfrontDomainName: string) {
-        const hostedZone = HostedZone.fromHostedZoneAttributes(this, 'hosted-zone', {
+    private addDomainName(props: SecretOracleStackProps, recordId: string, recordName: string, cloudfrontDomainName: string) {
+        const hostedZone = HostedZone.fromHostedZoneAttributes(this, `hosted-zone-${recordId}`, {
             hostedZoneId: props.hostedZoneId,
             zoneName: props.hostedZoneName
         });
 
-        return new CnameRecord(this, 'frontend-dns', {
-            recordName: props.domainName,
+        return new CnameRecord(this, recordId, {
+            recordName,
             domainName: cloudfrontDomainName,
             zone: hostedZone,
-            comment: `DNS for secret oracle frontend`,
+            comment: `DNS for ${recordName}`,
             ttl: Duration.seconds(300)
         });
     }
