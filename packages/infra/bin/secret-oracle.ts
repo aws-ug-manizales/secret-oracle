@@ -19,6 +19,7 @@ new SecretOracleStack(app, 'secret-oracle-web-stack', {
     hostedZoneId: process.env.HOSTED_ZONE_ID!,
     hostedZoneName: process.env.HOSTED_ZONE_NAME!,
     domainName: process.env.DOMAIN_NAME!,
+    gameroomDomainName: process.env.GAMEROOM_DOMAIN_NAME,
     env: {
         account: process.env.CDK_DEFAULT_ACCOUNT,
         region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1',
